@@ -1,0 +1,402 @@
+services:
+  # ===================== AUTH SERVICE + DB =====================
+  auth-db:
+    image: postgres:15
+    container_name: auth-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: oana2002
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: oana2002
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== EMAIL SERVICE =====================
+  email-service:
+    build:
+      context: ./email-service
+      dockerfile: Dockerfile
+    container_name: email-service
+    environment:
+      SERVER_PORT: 8079
+      SPRING_MAIL_HOST: smtp.mail.yahoo.com
+      SPRING_MAIL_PORT: 465
+      SPRING_MAIL_USERNAME: iliesoana2002@yahoo.com
+      SPRING_MAIL_PASSWORD: coyytehihjvexdrc
+    ports:
+      - "8079:8079"
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8079/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== PRODUCT SERVICE + DB =====================
+  product-db:
+    image: postgres:15
+    container_name: product-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: oana2002
+      POSTGRES_DB: product_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - product_db_data:/var/lib/postgresql/data
+      - ./product-service/db/product_db.sql:/docker-entrypoint-initdb.d/product_db.sql
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d product_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://product-db:5432/product_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: oana2002
+      SERVER_PORT: 8082
+      AUTH_SERVICE_URL: http://auth-service:8081
+    ports:
+      - "8082:8082"
+    depends_on:
+      product-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== REVIEW SERVICE + DB =====================
+  review-db:
+    image: postgres:15
+    container_name: review-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: oana2002
+      POSTGRES_DB: review_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - review_db_data:/var/lib/postgresql/data
+      - ./review-service/db/review_db.sql:/docker-entrypoint-initdb.d/review_db.sql
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d review_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  review-service:
+    build:
+      context: ./review-service
+      dockerfile: Dockerfile
+    container_name: review-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://review-db:5432/review_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: oana2002
+      SERVER_PORT: 8086
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PRODUCT_SERVICE_URL: http://product-service:8082
+      EMAIL_SERVICE_URL: http://email-service:8079
+    ports:
+      - "8086:8086"
+    depends_on:
+      review-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      email-service:
+        condition: service_healthy
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8086/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== ORDER SERVICE + DB =====================
+  order-db:
+    image: postgres:15
+    container_name: order-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: oana2002
+      POSTGRES_DB: order_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d order_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/order_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: oana2002
+      SERVER_PORT: 8083
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PRODUCT_SERVICE_URL: http://product-service:8082
+      EMAIL_SERVICE_URL: http://email-service:8079
+      DELIVERY_PAYMENT_SERVICE_URL: http://delivery-payment-service:8084
+    ports:
+      - "8083:8083"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      email-service:
+        condition: service_healthy
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== DELIVERY PAYMENT SERVICE + DB =====================
+  delivery-payment-db:
+    image: postgres:15
+    container_name: delivery-payment-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: oana2002
+      POSTGRES_DB: delivery_payment_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - delivery_payment_db_data:/var/lib/postgresql/data
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d delivery_payment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  delivery-payment-service:
+    build:
+      context: ./delivery-payment-service
+      dockerfile: Dockerfile
+    container_name: delivery-payment-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://delivery-payment-db:5432/delivery_payment_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: oana2002
+      SERVER_PORT: 8084
+      AUTH_SERVICE_URL: http://auth-service:8081
+      ORDER_SERVICE_URL: http://order-service:8083
+      JWT_SECRET: MyVeryStrongSuperSecretKeyThatIsAtLeast32BytesLong!
+    ports:
+      - "8084:8084"
+    depends_on:
+      delivery-payment-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8084/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== RECOMMENDATION SERVICE + DB =====================
+  recommendation-db:
+    image: postgres:15
+    container_name: recommendation-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: oana2002
+      POSTGRES_DB: recommendation_db
+    ports:
+      - "5437:5432"
+    volumes:
+      - recommendation_db_data:/var/lib/postgresql/data
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d recommendation_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  recommendation-service:
+    build:
+      context: ./recommendation-service
+      dockerfile: Dockerfile
+    container_name: recommendation-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://recommendation-db:5432/recommendation_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: oana2002
+      SERVER_PORT: 8085
+      PRODUCT_SERVICE_URL: http://product-service:8082
+      AUTH_SERVICE_URL: http://auth-service:8081
+      JWT_SECRET: MyVeryStrongSuperSecretKeyThatIsAtLeast32BytesLong!
+    ports:
+      - "8085:8085"
+    depends_on:
+      recommendation-db:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks:
+      - licenta-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8085/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== ML RECOMMENDATION SERVICE =====================
+  ml-recommendation-service:
+    build:
+      context: ./ml-recommendation-service
+      dockerfile: Dockerfile
+    container_name: ml-recommendation-service
+    ports:
+      - "8087:8087"
+    networks:
+      - licenta-net
+    depends_on:
+      - product-service
+      - order-service
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8087/docs || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== API GATEWAY =====================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8088:8088"
+    environment:
+      AUTH_SERVICE_URI: http://auth-service:8081
+      PRODUCT_SERVICE_URI: http://product-service:8082
+      REVIEW_SERVICE_URI: http://review-service:8086
+      ORDER_SERVICE_URI: http://order-service:8083
+      DELIVERY_PAYMENT_SERVICE_URI: http://delivery-payment-service:8084
+      RECOMMENDATION_SERVICE_URI: http://recommendation-service:8085
+      ML_RECOMMENDATION_SERVICE_URI: http://ml-recommendation-service:8087
+      CHATBOT_SERVICE_URI: http://chatbot-service:8089
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      review-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      delivery-payment-service:
+        condition: service_healthy
+      recommendation-service:
+        condition: service_healthy
+      ml-recommendation-service:
+        condition: service_healthy
+    networks:
+      - licenta-net
+    restart: always
+
+  # ===================== CHATBOT SERVICE =====================
+  chatbot-service:
+    build:
+      context: ./chatbot-service
+      dockerfile: Dockerfile
+    container_name: chatbot-service
+    ports:
+      - "8089:8089"
+    networks:
+      - licenta-net
+    environment:
+      - FLASK_ENV=production
+    depends_on:
+      - auth-service
+      - product-service
+
+# ===================== VOLUMES & NETWORK =====================
+volumes:
+  auth_db_data:
+  product_db_data:
+  review_db_data:
+  order_db_data:
+  delivery_payment_db_data:
+  recommendation_db_data:
+
+networks:
+  licenta-net:
+    driver: bridge

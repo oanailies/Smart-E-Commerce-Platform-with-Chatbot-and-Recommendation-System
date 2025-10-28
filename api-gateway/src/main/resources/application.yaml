@@ -1,0 +1,131 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins: "http://localhost:5173"
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowed-headers: "*"
+                allow-credentials: true
+      routes:
+        # AUTH-SERVICE
+        - id: auth-service-route
+          uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/auth/**
+        - id: admin-service-route
+          uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/admins/**
+        - id: client-service-route
+          uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/clients/**
+        - id: email-service-route
+          uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/email/**
+        - id: survey-service-route
+          uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/survey/**
+
+        # PRODUCT-SERVICE
+        - id: product-service-route
+          uri: ${PRODUCT_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/products/**
+
+        - id: brand-service-route
+          uri: ${PRODUCT_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/brands/**
+
+        - id: category-service-route
+          uri: ${PRODUCT_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/categories/**
+
+        - id: shade-service-route
+          uri: ${PRODUCT_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/shades/**
+
+        - id: size-service-route
+          uri: ${PRODUCT_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/sizes/**
+
+        - id: favorite-service-route
+          uri: ${PRODUCT_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/favorites/**
+        # ORDER-SERVICE
+        - id: order-service-route
+          uri: ${ORDER_SERVICE_URI:http://localhost:8083}
+          predicates:
+            - Path=/orders/**
+
+        - id: cart-service-route
+          uri: ${ORDER_SERVICE_URI:http://localhost:8083}
+          predicates:
+            - Path=/cart/**
+
+        - id: coupon-service-route
+          uri: ${ORDER_SERVICE_URI:http://localhost:8083}
+          predicates:
+            - Path=/coupons/**
+        # DELIVERY-PAYMENT-SERVICE
+        - id: address-service-route
+          uri: ${DELIVERY_PAYMENT_SERVICE_URI:http://localhost:8084}
+          predicates:
+            - Path=/addresses/**
+
+        - id: delivery-service-route
+          uri: ${DELIVERY_PAYMENT_SERVICE_URI:http://localhost:8084}
+          predicates:
+            - Path=/deliveries/**
+
+        - id: payment-service-route
+          uri: ${DELIVERY_PAYMENT_SERVICE_URI:http://localhost:8084}
+          predicates:
+            - Path=/payments/**
+        # EMAIL-SERVICE
+        - id: email-service-route
+          uri: ${EMAIL_SERVICE_URI:http://localhost:8079}
+          predicates:
+            - Path=/email/**
+        # REVIEW-SERVICE
+        - id: review-service-route
+          uri: ${REVIEW_SERVICE_URI:http://localhost:8086}
+          predicates:
+            - Path=/reviews/**
+          filters:
+            - AddRequestHeader=Authorization, "#{request.headers.Authorization}"
+        # RECOMMENDATION-SERVICE
+        - id: recommendation-service-route
+          uri: ${RECOMMENDATION_SERVICE_URI:http://localhost:8085}
+          predicates:
+            - Path=/api/recommendation/**
+        # ML-RECOMMENDATION-SERVICE
+        - id: mlrecommendation-service-route
+          uri: ${ML_RECOMMENDATION_SERVICE_URI:http://localhost:8087}
+          predicates:
+            - Path=/api/recommendations/**
+        - id: chatbot-service-route
+          uri: ${CHATBOT_SERVICE_URI:http://localhost:8089}
+          predicates:
+            - Path=/api/chat/**

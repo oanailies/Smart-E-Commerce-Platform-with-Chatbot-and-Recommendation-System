@@ -1,0 +1,161 @@
+@startuml
+
+class UserAccount {
+  -- Fields --
+  +Long id
+  +String username
+  +String email
+  +String password
+  +Role role
+
+  .. Methods ..
+  +Map<String,Object> login(String email, String password)
+  +boolean validateToken(String token)
+}
+
+class Client {
+  -- Fields --
+  +Long id
+  +String name
+  +String phoneNumber
+  +UserAccount userAccount
+
+  .. Methods ..
+  +Client createClient(ClientDTO clientDTO)
+  +Optional<Client> getClientById(Long id)
+  +void deleteClient(Long id)
+}
+
+class Product {
+  -- Fields --
+  +Long id
+  +String name
+  +String description
+  +double price
+  +int stock
+  +boolean onSale
+  +Double discountedPrice
+  +Double discountPercent
+  +Category category
+  +Brand brand
+  +Gender gender
+  +Size size
+  +Color color
+  +Shade shade
+
+  .. Methods ..
+  +Product createProduct(String name, String description, double price,
+   int stock, Long categoryId, Long brandId, Gender gender, Long sizeId,
+    Long colorId, Long shadeId)
+  +Product getProductById(Long id)
+  +boolean deleteProductById(Long id)
+  +List<Product> searchProducts(String keyword)
+  +boolean applyDiscountToProduct(Long productId, double discountPercent)
+}
+
+class Delivery {
+  -- Fields --
+  +Long id
+  +Long orderId
+  +Long clientId
+  +String method
+  +String courierCompany
+  +String easyboxCompany
+  +String easyboxLocation
+  +String pickupLocation
+  +DeliveryStatus status
+
+  .. Methods ..
+  +Delivery createDelivery(Delivery delivery, String jwtToken)
+  +Delivery getDeliveryById(Long id)
+}
+
+class Payment {
+  -- Fields --
+  +Long id
+  +Long orderId
+  +Long clientId
+  +Double amount
+  +PaymentStatus status
+  +PaymentMethod paymentMethod
+
+  .. Methods ..
+  +Payment createPayment(Payment payment, String token)
+  +Payment getPaymentById(Long id)
+}
+
+class Review {
+  -- Fields --
+  +Long id
+  +Long orderId
+  +Long productId
+  +Long clientId
+  +int rating
+  +String comment
+  +Date reviewDate
+  +Integer likeCount
+  +Integer dislikeCount
+
+  .. Methods ..
+  +Review createReview(Long clientId, Long orderId, Long productId,
+  int rating, String comment, String jwtToken)
+  +List<Review> getReviewsByProduct(Long productId)
+  +Double getAverageRating(Long productId)
+  +Review likeReview(Long reviewId, Long clientId, String jwtToken)
+  +Review dislikeReview(Long reviewId, Long clientId, String jwtToken)
+}
+
+
+
+class Order {
+  -- Fields --
+  +Long id
+  +Long clientId
+  +Date orderDate
+  +Double totalPrice
+  +OrderStatus status
+  +Boolean giftWrap
+  +String personalizedMessage
+  +List<OrderProduct> orderProducts
+
+  .. Methods ..
+  +Order createOrder(Long clientId, List<OrderProduct> orderProducts,
+  double finalAmount, String jwtToken)
+  +Order markOrderAsCompleted(Long orderId, String jwtToken)
+  +Order cancelOrder(Long orderId)
+  +Order requestReturn(Long orderId, String jwtToken)
+}
+
+class OrderProduct {
+  -- Fields --
+  +Long id
+  +Order order
+  +Long productId
+  +int quantity
+  +double salePrice
+  +String productName
+  +String brandName
+  +String imageUrl
+  +String description
+  +String gender
+  +String size
+  +String color
+  +String shade
+}
+
+'==================== RELAȚII ====================
+
+Client "1" -- "1" UserAccount : owns >
+Client "1" -- "0..*" Order : places >
+Order "1" *-- "1..*" OrderProduct : contains >
+Product "1" -- "0..*" OrderProduct : included in >
+Order "1" -- "0..1" Delivery : ships via >
+Order "1" -- "0..1" Payment  : paid by >
+Client "1" -- "0..*" Delivery : receives >
+Client "1" -- "0..*" Payment : payer >
+Client "1" -- "0..*" Review : writes >
+Product "1" -- "0..*" Review : is reviewed by >
+Order "1" -- "0..*" Review : originates from >
+
+
+@enduml
